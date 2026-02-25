@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHISHI Sport festival2026</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+
+    <!-- 
+        ================================================================
+        CSS SECTION
+        ================================================================
+    -->
+    <style>
+        :root {
+            --neo-yellow: #f8ff00;
+            --neo-pink: #ff00ea;
+            --neo-green: #00ff66;
+            --neo-blue: #00d1ff;
+            --neo-red: #ff3e3e;
+            --border-width: 4px;
+            --shadow-offset: 8px;
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --border-width: 3px;
+                --shadow-offset: 5px;
+            }
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #fff;
+            color: #000;
+            overflow-x: hidden;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 150px;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
+        }
+
+        /* Neo-Brutalism Components */
+        .neo-card {
+            background: white;
+            border: var(--border-width) solid #000;
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px #000;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .neo-card:active {
+            transform: translate(2px, 2px);
+            box-shadow: calc(var(--shadow-offset) - 2px) calc(var(--shadow-offset) - 2px) 0px 0px #000;
+        }
+
+        .neo-btn {
+            background: var(--neo-yellow);
+            border: var(--border-width) solid #000;
+            box-shadow: 4px 4px 0px 0px #000;
+            font-weight: 900;
+            text-transform: uppercase;
+            transition: all 0.1s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .neo-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px 0px #000;
+        }
+
+        /* Kinetic Typography */
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            background: #000;
+            color: #fff;
+            padding: 0.5rem 0;
+            border-top: var(--border-width) solid #000;
+            border-bottom: var(--border-width) solid #000;
+            width: 100%;
+            margin-left: 0;
+            position: absolute;
+            z-index: 1; /* 背景より上、Three.jsより下 */
+        }
+
+        .kinetic-text {
+            font-size: clamp(2.5rem, 15vw, 12rem);
+            font-weight: 900;
+            display: inline-block;
+            line-height: 0.8;
+            padding: 0 1.5rem;
+        }
+
+        #three-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            pointer-events: none;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Responsive Bento Grid */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .bento-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            .bento-grid { grid-template-columns: 1fr; }
+            .bento-wide, .bento-tall { grid-column: span 1 !important; grid-row: span 1 !important; }
+        }
+
+        .bento-wide { grid-column: span 2; }
+        .bento-tall { grid-row: span 2; }
+
+        .team-list li {
+            border-bottom: 2px solid #000;
+            padding: 6px 0;
+        }
+        .team-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Mobile Utility */
+        .mobile-scroll-x {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body class="pt-16 md:pt-24">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white border-b-4 border-black px-4 md:px-8 py-2 md:py-4 flex justify-between items-center box-border">
+        <div class="text-xl md:text-3xl font-black italic tracking-tighter bg-black text-white px-2 md:px-3 py-1">SHISHI</div>
+        <div class="hidden lg:flex space-x-8 font-bold text-lg">
+            <a href="#info" class="hover:text-pink-500 transition">Info</a>
+            <a href="#teams" class="hover:text-pink-500 transition">Teams</a>
+            <a href="#events" class="hover:text-pink-500 transition">Events</a>
+        </div>
+        <button class="neo-btn px-3 py-1.5 text-[10px] md:text-sm bg-lime-400"><a href="https://forms.gle/rUo1iYosCfGbhx4w6" class="hover:text-neo-yellow transition">Join Event</a></button>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative h-[80vh] md:h-screen flex items-center justify-center overflow-hidden">
+        <canvas id="three-canvas"></canvas>
+        
+        <!-- Kinetic Text Layer 1 -->
+        <div id="kinetic-1" class="marquee-container top-[20%] opacity-20 -rotate-3">
+            <div class="kinetic-text">SHISHI 2026 • SHISHI 2026 • SHISHI 2026 • SHISHI 2026 • </div>
+            <div class="kinetic-text">SHISHI 2026 • SHISHI 2026 • SHISHI 2026 • SHISHI 2026 • </div>
+        </div>
+
+        <div class="relative z-10 text-center px-4">
+            <h1 class="text-5xl sm:text-7xl md:text-[10rem] lg:text-[14rem] font-black leading-none drop-shadow-[4px_4px_0px_#f8ff00] md:drop-shadow-[12px_12px_0px_#f8ff00] uppercase italic">
+                SHISHI<br>Sports
+            </h1>
+            <div class="mt-6 md:mt-12">
+                <span class="bg-black text-white text-[10px] sm:text-base md:text-3xl font-black px-3 py-2 md:px-8 md:py-4 inline-block transform rotate-2">
+                    SUNOKO-STADIUM START
+                </span>
+            </div>
+        </div>
+
+        <!-- Kinetic Text Layer 2 -->
+        <div id="kinetic-2" class="marquee-container bottom-[20%] bg-blue-400 rotate-2">
+            <div class="kinetic-text text-black">NO LIMITS • FASTEST • CITY RUN • NO LIMITS • FASTEST • CITY RUN • </div>
+            <div class="kinetic-text text-black">NO LIMITS • FASTEST • CITY RUN • NO LIMITS • FASTEST • CITY RUN • </div>
+        </div>
+    </section>
+
+    <!-- Info Section (Program & Access) -->
+    <section id="info" class="px-4 md:px-8 py-12 md:py-20 bg-white border-y-4 border-black">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <div class="md:col-span-2 neo-card bg-neo-yellow p-6 md:p-12">
+                <h2 class="text-3xl md:text-6xl font-black mb-6 uppercase italic">Event Program</h2>
+                <div class="space-y-3 md:space-y-4 text-sm md:text-2xl font-bold">
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2"><span>10:00</span><span>選手宣誓、ラジオ体操</span></div>
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2"><span>11:00</span><span>ドッジボール</span></div>
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2"><span>12:00</span><span>クイズ大会、障害物競走</span></div>
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2 bg-black text-white px-2"><span>13:00</span><span>昼休み（お弁当支給🍱）</span></div>
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2"><span>14:00</span><span>大縄/???</span></div>
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2 text-neo-pink"><span>15:00</span><span>モテ男子選手権、リレー</span></div>
+                    <div class="flex justify-between border-b-2 md:border-b-4 border-black pb-1 md:pb-2"><span>16:00</span><span>結果発表、表彰式</span></div>
+                </div>
+            </div>
+            <div class="neo-card bg-black text-white p-6 md:p-8 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-2xl md:text-3xl font-black mb-3 uppercase">Location</h3>
+                    <p class="text-lg md:text-xl font-bold text-neo-green mb-1">すのこ体育館</p>
+                    <p class="text-[10px] md:text-sm opacity-70">福岡県福岡市中央区</p>
+                    <a href="https://resunoko-square.jp/" class="text-neo-blue underline text-[10px] md:text-xs break-all block mt-2">https://resunoko-square.jp/</a>
+                </div>
+                <div class="mt-6 md:mt-8">
+                    <h3 class="text-xl md:text-2xl font-black mb-1">ACCESS</h3>
+                    <p class="font-bold text-sm md:text-base">大濠公園駅から徒歩5分</p>
+                </div>
+                <div class="mt-6 md:mt-8 bg-neo-pink text-black p-3 md:p-4 font-black text-center text-sm md:text-base">
+                    2026.04.02 THU<br>10:00 - 17:00
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Teams Section -->
+    <section id="teams" class="px-4 md:px-8 py-12 md:py-20 bg-zinc-100">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl md:text-8xl font-black mb-8 md:mb-16 italic text-center uppercase">The Teams</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                <!-- Red Team -->
+                <div class="neo-card overflow-hidden">
+                    <div class="bg-neo-red p-4 border-b-4 border-black">
+                        <h3 class="text-3xl font-black">RED TEAM</h3>
+                    </div>
+                    <div class="p-4 md:p-6">
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">Captain</span>
+                            <p class="text-1xl md:text-2xl font-black">田尻 和輝</p>
+                        </div>
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">Vice Captain</span>
+                            <p class="text-lg md:text-xl font-black">濵﨑 萌</p>
+                        </div>
+                        <ul class="team-list font-bold text-xs md:text-sm">
+                            <li>杉野 龍</li><li>別宮 真里奈</li><li>飯星 美咲</li><li>永山 沙都</li><li>池本 亜美</li><li>増田 穂乃香</li><li>池永 大晟</li><li>古賀 夕聖</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Blue Team -->
+                <div class="neo-card overflow-hidden">
+                    <div class="bg-neo-blue p-4 border-b-4 border-black">
+                        <h3 class="text-2xl md:text-3xl font-black">BLUE TEAM</h3>
+                    </div>
+                    <div class="p-4 md:p-6">
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">Captain</span>
+                            <p class="text-xl md:text-2xl font-black">古野 恋</p>
+                        </div>
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">Vice Captain</span>
+                            <p class="text-lg md:text-xl font-black">古賀 千晶</p>
+                        </div>
+                        <ul class="team-list font-bold text-xs md:text-sm">
+                            <li>亀井 里苑</li><li>荒舩 鉄太</li><li>岩下 秀平</li><li>桐原 梓希</li><li>梅田 朱乃</li><li>臼山 かおり</li><li>東 健太郎</li><li>園田 幸穂</li><li>黒木 理香子</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Yellow Team -->
+                <div class="neo-card overflow-hidden">
+                    <div class="bg-neo-yellow p-4 border-b-4 border-black">
+                        <h3 class="text-2xl md:text-3xl font-black">YELLOW TEAM</h3>
+                    </div>
+                    <div class="p-4 md:p-6">
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">Captain</span>
+                            <p class="text-xl md:text-2xl font-black">宮近 篤輝</p>
+                        </div>
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">Vice Captain</span>
+                            <p class="text-lg md:text-xl font-black">牧 いずみ</p>
+                        </div>
+                        <ul class="team-list font-bold text-xs md:text-sm">
+                            <li>大久保 めぐみ</li><li>西山 朋花</li><li>湯澤 龍一</li><li>森 琴希</li><li>猪瀬 白峰</li><li>赤嶺 創太</li><li>望月 宏典</li><li>森本 雅也</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Details Section -->
+    <section id="events" class="px-4 md:px-8 py-12 md:py-20 bg-neo-green border-t-4 border-black">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-3xl md:text-6xl font-black mb-8 md:mb-12 bg-white inline-block px-4 border-4 border-black shadow-[4px_4px_0_0_#000] uppercase italic">Regulations</h2>
+            
+            <div class="bento-grid">
+                <!-- Dodgeball -->
+                <div class="bento-wide neo-card p-5 md:p-8 bg-white">
+                    <h3 class="text-2xl md:text-3xl font-black mb-4 flex items-center gap-3">
+                        <span class="bg-black text-white px-2 py-1">01</span> ドッジボール
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <ul class="font-bold space-y-1 md:space-y-2 text-sm md:text-base">
+                            <li>• 10名 VS 10名</li>
+                            <li>• 1試合7分 (3分休憩)</li>
+                            <li>• リーグ戦: AvsB / BvsC / AvsC</li>
+                        </ul>
+                        <p class="bg-zinc-100 p-3 md:p-4 border-2 border-black font-bold text-xs md:text-sm">
+                            勝利条件: 残った人数が多い、または相手を全滅させたチームの勝ち。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Obstacle Race -->
+                <div class="neo-card p-5 md:p-6 bg-neo-pink">
+                    <h3 class="text-xl md:text-2xl font-black mb-3">02.障害物競争</h3>
+                    <p class="text-[10px] font-black mb-2 uppercase opacity-70">Selection: 3 per team</p>
+                    <ul class="text-xs md:text-sm font-bold space-y-1">
+                        <li>1. グルグルバット足ツボ</li>
+                        <li>2. センブリ茶一気飲み</li>
+                        <li>3. 借り人競争</li>
+                    </ul>
+                </div>
+
+                <!-- Quiz -->
+                <div class="neo-card p-5 md:p-6 bg-white flex flex-col justify-center items-center text-center">
+                    <h3 class="text-xl md:text-2xl font-black uppercase mb-1">03.Quiz Battle</h3>
+                    <div class="text-4xl md:text-5xl font-black">20</div>
+                    <p class="font-black text-[10px] uppercase mt-1">Questions Total</p>
+                </div>
+
+                <!-- Jump Rope -->
+                <div class="bento-wide neo-card p-5 md:p-8 bg-neo-blue flex flex-col md:flex-row gap-4 md:gap-6 items-center">
+                    <div class="flex-1">
+                        <h3 class="text-2xl md:text-3xl font-black mb-2 uppercase italic">04.Team Jump Rope_大縄
+                        </h3>
+                        <p class="font-bold text-xs md:text-sm">練習4分 + 本番2分。<br>シンクロ率が鍵となる。最多記録を叩き出せ。</p>
+                    </div>
+                    <div class="bg-black text-white p-4 md:p-6 font-black text-center w-full md:w-auto">
+                        <span class="text-[10px] md:text-sm">TIME LIMIT</span><br>
+                        <span class="text-3xl md:text-4xl text-neo-yellow">2:00</span>
+                    </div>
+                </div>
+                
+
+                <!-- Mote-Danshi -->
+                <div class="neo-card p-5 md:p-6 bg-white flex flex-col justify-between">
+                    <h3 class="text-lg md:text-xl font-black uppercase">05.モテ男子選手権</h3>
+                    <p class="text-[10px] md:text-xs font-bold leading-tight mt-2 md:mt-4">最も輝いていた番号に投票せよ。全女子が審査員だ。</p>
+                    <div class="mt-3 md:mt-4 border-2 border-black p-1.5 md:p-2 text-center font-black text-[10px]">VOTE SYSTEM</div>
+                </div>
+
+                <!-- Relay -->
+                <div class="neo-card p-5 md:p-6 bg-neo-yellow">
+                    <h3 class="text-xl md:text-2xl font-black mb-2 italic uppercase">06.Relay_ガチリレー</h3>
+                    <p class="text-xs md:text-sm font-bold">1人1周 × 各チーム選抜4人。イベントを締めくくる最終決戦。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kinetic Typography Full-Width Break -->
+    <section class="py-10 md:py-20 bg-black overflow-hidden flex whitespace-nowrap border-y-8 border-neo-pink transform rotate-1 scale-110">
+        <div class="kinetic-text text-white uppercase italic">Run for glory • Shishi Sport 2026 • Team Red • Team Blue • Team Yellow • </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="py-16 md:py-40 px-4 text-center">
+        <div class="max-w-4xl mx-auto neo-card p-8 md:p-20 bg-neo-blue -rotate-1">
+            <h2 class="text-3xl md:text-8xl font-black text-black mb-6 md:mb-8 leading-none uppercase italic">Let's get excited.</h2>
+            <p class="text-sm md:text-2xl font-bold mb-8 md:mb-12 text-black max-w-xl mx-auto">
+                団長、副団長のみんなから<br>チームを鼓舞するメッセージが欲しい。<br>チームに向けた熱意を聞かせてくれ。
+            </p>
+            <button class="neo-btn bg-white text-lg md:text-4xl py-4 md:py-6 px-8 md:px-12 w-full md:w-auto uppercase italic"><a href="https://forms.gle/rUo1iYosCfGbhx4w6" class="hover:text-neo-yellow transition">Form</a></button>
+        </div>
+    </section>
+
+    <footer class="py-10 bg-black text-white text-center border-t-8 border-black">
+        <div class="text-lg md:text-2xl font-black mb-3 italic">SHISHI SPORTS FESTA</div>
+        <div class="flex justify-center space-x-6 opacity-50 text-[8px] md:text-[10px] tracking-[0.3em] uppercase mb-6 md:mb-8">
+            <a href="https://x.com/shishi___mk" class="hover:text-neo-yellow transition">Twitter</a>
+            <a href="https://www.instagram.com/shishi_recruit_official/" class="hover:text-neo-yellow transition">Instagram</a>
+            <a href="https://www.tiktok.com/@shishicompany" class="hover:text-neo-yellow transition">TikTok</a>
+        </div>
+        <p class="opacity-30 text-[8px] md:text-[10px] uppercase">Designed by undokaijikkouiin for Resunoko Square.</p>
+    </footer>
+
+    <!-- 
+        ================================================================
+        JS SECTION
+        ================================================================
+    -->
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        const initThree = () => {
+            const canvas = document.getElementById('three-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            
+            const updateSize = () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            };
+            updateSize();
+
+            const geometry = new THREE.BoxGeometry(2.2, 2.2, 2.2);
+            const edges = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 5 });
+            const cubeLines = new THREE.LineSegments(edges, lineMaterial);
+            
+            const innerGeo = new THREE.BoxGeometry(2.1, 2.1, 2.1);
+            const innerMat = new THREE.MeshBasicMaterial({ color: 0xf8ff00 });
+            const innerCube = new THREE.Mesh(innerGeo, innerMat);
+            
+            const cubeGroup = new THREE.Group();
+            cubeGroup.add(cubeLines);
+            cubeGroup.add(innerCube);
+            scene.add(cubeGroup);
+
+            camera.position.z = 5;
+
+            let targetX = 0, targetY = 0;
+            window.addEventListener('mousemove', (e) => {
+                targetX = (e.clientX / window.innerWidth - 0.5) * 1.5;
+                targetY = (e.clientY / window.innerHeight - 0.5) * 1.5;
+            });
+
+            // Touch support for Three.js
+            window.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                targetX = (touch.clientX / window.innerWidth - 0.5) * 1.5;
+                targetY = (touch.clientY / window.innerHeight - 0.5) * 1.5;
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                cubeGroup.rotation.y += 0.005;
+                cubeGroup.rotation.x += 0.005;
+                cubeGroup.rotation.y += (targetX - cubeGroup.rotation.y) * 0.05;
+                cubeGroup.rotation.x += (targetY - cubeGroup.rotation.x) * 0.05;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', updateSize);
+        };
+
+        const initAnimations = () => {
+            // Smoothly move kinetic text on scroll
+            gsap.to("#kinetic-1 .kinetic-text", {
+                xPercent: -40,
+                ease: "none",
+                scrollTrigger: {
+                    trigger: "body",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scrub: 1
+                }
+            });
+
+            gsap.to("#kinetic-2 .kinetic-text", {
+                xPercent: 40,
+                ease: "none",
+                scrollTrigger: {
+                    trigger: "body",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scrub: 1
+                }
+            });
+
+            // Reveal cards with a slight bounce
+            gsap.utils.toArray(".neo-card").forEach((card, i) => {
+                gsap.from(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: "top 95%",
+                        toggleActions: "play none none none"
+                    },
+                    y: 40,
+                    rotation: i % 2 === 0 ? -0.5 : 0.5,
+                    opacity: 0,
+                    duration: 0.6,
+                    ease: "power2.out"
+                });
+            });
+        };
+
+        window.onload = () => {
+            initThree();
+            initAnimations();
+        };
+    </script>
+</body>
+</html>
